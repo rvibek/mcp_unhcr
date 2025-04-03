@@ -4,26 +4,12 @@ startCommand:
   configSchema:
     # JSON Schema defining the configuration options for the MCP
     type: object
-    properties:
+    properties: {}
       # No API keys required for this server as it uses a public API
-      cache_timeout:
-        type: integer
-        default: 3600
-        description: Cache timeout in seconds for API requests
-      log_level:
-        type: string
-        enum: ["DEBUG", "INFO", "WARNING", "ERROR"]
-        default: "INFO"
-        description: Logging level for the server
+    additionalProperties: false
   commandFunction: |-
     (config) => ({
-      command: 'python',
-      args: ['app.py'],
-      env: {
-        CACHE_TIMEOUT: config.cache_timeout.toString(),
-        LOG_LEVEL: config.log_level
-      }
+      command: "python",
+      "args": ["app.py"],
+      "env": {}
     })
-  exampleConfig:
-    cache_timeout: 3600
-    log_level: "INFO"
