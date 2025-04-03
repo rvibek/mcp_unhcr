@@ -10,11 +10,11 @@ API Endpoint: https://api.unhcr.org/population/v1/population/
 
 import json
 import logging
-import requests
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlencode
 
-from mcp.server.fastmcp import FastMCP, Context
+import requests
+from mcp.server.fastmcp import Context, FastMCP
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,7 +35,7 @@ def fetch_unhcr_data(coo: Optional[str] = None,
     Args:
         coo: Country of origin (ISO 3-letter code, comma-separated for multiple)
         coa: Country of asylum (ISO 3-letter code, comma-separated for multiple)
-        year: Year(s) to filter by (comma-separated for multiple years)
+        year: Year(s) to filter by (comma-separated for multiple years), defaults to 2024 if not provided
         
     Returns:
         Dict containing the API response
@@ -46,8 +46,10 @@ def fetch_unhcr_data(coo: Optional[str] = None,
         params["coo"] = coo
     if coa:
         params["coa"] = coa
-    if year:
-        params["year"] = str(year)
+    if year is None:
+        params["year"] = "2024"
+    else:
+        params["year"] = str(year)  # Use provided year(s) if passed
     
     url = UNHCR_API_BASE_URL
     
