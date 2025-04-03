@@ -46,10 +46,17 @@ def fetch_unhcr_data(coo: Optional[str] = None,
         params["coo"] = coo
     if coa:
         params["coa"] = coa
+    # Handle the year parameter
     if year is None:
-        params["year"] = "2024"
+        params["year[]"] = "2024"  # Default to 2024
     else:
-        params["year"] = str(year)  # Use provided year(s) if passed
+        # Convert year to string and split by comma if multiple years are provided
+        year_str = str(year)
+        if "," in year_str:
+            years = [y.strip() for y in year_str.split(",")]
+            params["year[]"] = years  # Pass as a list for multiple years
+        else:
+            params["year[]"] = year_str  # Single year as a string
     
     url = UNHCR_API_BASE_URL
     
