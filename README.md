@@ -1,12 +1,11 @@
 # UNHCR Population Data MCP Server
 
-This MCP (Model Context Protocol) server provides access to UNHCR population data through a standardized interface. It allows AI agents to query refugee statistics by country of origin, country of asylum, and year.
+This MCP (Model Context Protocol) server provides access to UNHCR population data through a standardized interface. It allows AI agents to query [UNHCR’s Refugee Population Statistics Database](https://www.unhcr.org/refugee-statistics) by country of origin, country of asylum, and year(s).
 
 ## Features
 
-- Query population data with flexible filtering by country of origin, country of asylum, and year
-- Get refugee counts for specific countries of origin
-- Get asylum statistics for countries hosting refugees
+- Query total population data by country of origin, country of asylum, and year(s)
+- Get refugee/asylum seekers counts for specific country of origin and asylum
 - Access country profiles with both origin and asylum statistics
 - View global refugee statistics by year
 
@@ -20,10 +19,6 @@ This MCP (Model Context Protocol) server provides access to UNHCR population dat
 ### Setup
 
 1. Clone this repository:
-   ```
-   git clone <repository-url>
-   cd unhcr-mcp-server
-   ```
 
 2. Install dependencies:
    ```
@@ -84,7 +79,7 @@ Get refugee count for a specific country of origin.
 - `coa` (optional): Country of asylum filter (ISO 3-letter code)
 - `year` (optional): Year filter
 
-### `get_asylum_stats`
+### `get_asylum_count`
 
 Get asylum statistics for a specific country of asylum.
 

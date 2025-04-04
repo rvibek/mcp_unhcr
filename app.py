@@ -3,7 +3,7 @@
 UNHCR Population Data MCP Server
 
 This MCP server provides access to UNHCR population data through the Model Context Protocol.
-It allows querying population statistics by country of origin, country of asylum, and year.
+It allows querying Refugee Data Finder (RDF) statistics by country of origin, country of asylum, and year(s).
 
 API Endpoint: https://api.unhcr.org/population/v1/population/
 """
@@ -124,7 +124,7 @@ def get_refugee_count(coo: str, coa: Optional[str] = None, year: Optional[Union[
         return {"error": "No data found", "status": "error"}
 
 @mcp.tool()
-def get_asylum_stats(coa: str, year: Optional[Union[str, int]] = None) -> Dict[str, Any]:
+def get_asylum_count(coa: str, year: Optional[Union[str, int]] = None) -> Dict[str, Any]:
     """
     Get asylum statistics for a specific country of asylum.
     
@@ -133,7 +133,7 @@ def get_asylum_stats(coa: str, year: Optional[Union[str, int]] = None) -> Dict[s
         year: Optional year filter
         
     Returns:
-        Asylum statistics
+        Asylum seekers count
     """
     data = fetch_unhcr_data(coa=coa, year=year)
     
@@ -345,5 +345,6 @@ def get_country_profile(country_code: str) -> str:
     return result
 
 if __name__ == "__main__":
-    # Run the server in development mode
+    # Run the server
+    print("MCP server running in development mode. Press Ctrl+C to stop.")
     mcp.run()
