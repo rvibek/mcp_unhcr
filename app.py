@@ -170,32 +170,52 @@ def get_asylum_count(coa: str, year: Optional[Union[str, int]] = None) -> Dict[s
 @mcp.resource("unhcr://countries")
 def get_countries() -> str:
     """
-    Get a list of countries with their ISO codes.
+    Get a list of countries with ISO3 codes, names, bureau, bureau code, and continent info.
     
     Returns:
-        A formatted string with country information
+        A formatted string with extended country information
     """
     # Make a request to get some data that will include country information
     data = fetch_unhcr_data(year="2022")
     
+    # Create a dictionary mapping ISO codes to additional info
+    country_metadata = {
+        "KEN": {"name": "Kenya", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
+        "UGA": {"name": "Uganda", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
+        "ETH": {"name": "Ethiopia", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
+        "SDN": {"name": "Sudan", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
+        "SSD": {"name": "South Sudan", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
+        "TZA": {"name": "Tanzania", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
+        "EGY": {"name": "Egypt", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
+        "LBY": {"name": "Libya", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
+        "TUN": {"name": "Tunisia", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
+        "DZA": {"name": "Algeria", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
+        "JOR": {"name": "Jordan", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Asia"},
+        "IRQ": {"name": "Iraq", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Asia"},
+    }
+    
     countries = set()
     if "items" in data:
         for item in data["items"]:
-            if "coo_name" in item and "coo" in item:
-                countries.add((item["coo"], item["coo_name"]))
-            if "coa_name" in item and "coa" in item:
-                countries.add((item["coa"], item["coa_name"]))
+            if "coo" in item and item["coo"] in country_metadata:
+                iso = item["coo"]
+                meta = country_metadata[iso]
+                countries.add((iso, meta["name"], meta["bureau"], meta["bureau_code"], meta["continent"]))
+            if "coa" in item and item["coa"] in country_metadata:
+                iso = item["coa"]
+                meta = country_metadata[iso]
+                countries.add((iso, meta["name"], meta["bureau"], meta["bureau_code"], meta["continent"]))
     
     # Sort countries by name
     countries = sorted(list(countries), key=lambda x: x[1])
     
     # Format the output
-    result = "# UNHCR Country Codes\n\n"
-    result += "ISO Code | Country Name\n"
-    result += "---------|-------------\n"
+    result = "# UNHCR Country Information\n\n"
+    result += "ISO3 | Country Name | Bureau Name | Bureau Code | Continent\n"
+    result += "------|-------------|-------------|-------------|----------\n"
     
-    for code, name in countries:
-        result += f"{code} | {name}\n"
+    for code, name, bureau, bureau_code, continent in countries:
+        result += f"{code} | {name} | {bureau} | {bureau_code} | {continent}\n"
     
     return result
 
