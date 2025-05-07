@@ -2,10 +2,10 @@
 """
 UNHCR Population Data MCP Server
 
-This MCP server provides access to UNHCR population data through the Model Context Protocol.
-It allows querying Refugee Data Finder (RDF) statistics by country of origin, country of asylum, and year(s).
+This MCP server provides access to various UNHCR endpoints through the Model Context Protocol.
+It allows querying data around forcibly displaced persons by country of origin, country of asylum, and year(s), as well as provide data on Refugee Status Determination (RSD) Applications and Refugee Status Determination (RSD) decisions
 
-API Endpoint: https://api.unhcr.org/population/v1/population/
+API Endpoint: https://api.unhcr.org/population/v1/
 """
 
 import json
@@ -21,21 +21,22 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Create an MCP server
-mcp = FastMCP("UNHCR Population Data")
+mcp = FastMCP("UNHCR API Data")
 
-# Base URL for the UNHCR API
-UNHCR_API_BASE_URL = "https://api.unhcr.org/population/v1/population/"
-
-def fetch_unhcr_data(coo: Optional[str] = None, 
-                    coa: Optional[str] = None, 
-                    year: Optional[Union[str, int]] = None) -> Dict[str, Any]:
+def fetch_unhcr_api_data(endpoint: str,
+                         coo: Optional[str] = None,
+                         coa: Optional[str] = None,
+                         year: Optional[Union[str, int]] = None,
+                         coo_all: bool = False) -> Dict[str, Any]:
     """
-    Fetch data from the UNHCR Population API.
+    Generic function to fetch data from various UNHCR API endpoints.
     
     Args:
-        coo: Country of origin (ISO 3-letter code, comma-separated for multiple)
-        coa: Country of asylum (ISO 3-letter code, comma-separated for multiple)
+        endpoint: API endpoint name ("population", "asylum-applications", or "asylum-decisions")
+        coo: Country of origin (ISO3 code, comma-separated for multiple)
+        coa: Country of asylum (ISO3 code, comma-separated for multiple)
         year: Year(s) to filter by (comma-separated for multiple years), defaults to 2024 if not provided
+        coo_all: If True, break down results by all countries of origin
         
     Returns:
         Dict containing the API response
@@ -46,6 +47,9 @@ def fetch_unhcr_data(coo: Optional[str] = None,
         params["coo"] = coo
     if coa:
         params["coa"] = coa
+    if coo_all:
+        params["coo_all"] = "true"  # API expects a string "true", not a boolean
+        
     # Handle the year parameter
     if year is None:
         params["year[]"] = "2024"  # Default to 2024
@@ -58,311 +62,80 @@ def fetch_unhcr_data(coo: Optional[str] = None,
         else:
             params["year[]"] = year_str  # Single year as a string
     
-    url = UNHCR_API_BASE_URL
+    base_url = "https://api.unhcr.org/population/v1"
+    url = f"{base_url}/{endpoint}/"
     
     try:
-        logger.info(f"Fetching UNHCR data with params: {params}")
+        logger.info(f"Fetching UNHCR {endpoint} data with params: {params}")
         response = requests.get(url, params=params)
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        logger.error(f"Error fetching UNHCR data: {e}")
+        logger.error(f"Error fetching UNHCR {endpoint} data: {e}")
         return {"error": str(e), "status": "error"}
+
+
+# Now update the MCP tool functions to include the coo_all parameter:
 
 @mcp.tool()
 def get_population_data(coo: Optional[str] = None, 
                         coa: Optional[str] = None, 
-                        year: Optional[Union[str, int]] = None) -> Dict[str, Any]:
+                        year: Optional[Union[str, int]] = None,
+                        coo_all: bool = False) -> Dict[str, Any]:
     """
     Get population data from UNHCR.
     
     Args:
-        coo: Country of origin filter (ISO 3-letter code, comma-separated for multiple)
-        coa: Country of asylum filter (ISO 3-letter code, comma-separated for multiple)
+        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
+        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
         year: Year filter (comma-separated for multiple years)
+        coo_all: If True, break down results by all countries of origin
         
     Returns:
         Population data from UNHCR
     """
-    return fetch_unhcr_data(coo=coo, coa=coa, year=year)
+    return fetch_unhcr_api_data("population", coo=coo, coa=coa, year=year, coo_all=coo_all)
+
 
 @mcp.tool()
-def get_refugee_count(coo: str, coa: Optional[str] = None, year: Optional[Union[str, int]] = None) -> Dict[str, Any]:
+def get_rsd_applications(coo: Optional[str] = None, 
+                        coa: Optional[str] = None, 
+                        year: Optional[Union[str, int]] = None,
+                        coo_all: bool = False) -> Dict[str, Any]:
     """
-    Get refugee count for specific country of origin.
+    Get RSD application data from UNHCR.
     
     Args:
-        coo: Country of origin (ISO 3-letter code)
-        coa: Optional country of asylum filter (ISO 3-letter code)
-        year: Optional year filter
+        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
+        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
+        year: Year filter (comma-separated for multiple years)
+        coo_all: If True, break down results by all countries of origin
         
     Returns:
-        Refugee count data
+        UNHCR RSD Applications data in a country of asylum
     """
-    data = fetch_unhcr_data(coo=coo, coa=coa, year=year)
-    
-    # Process the data to extract just the refugee counts
-    if "items" in data and data["items"]:
-        result = {
-            "country_of_origin": coo,
-            "total_refugees": 0,
-            "by_year": {}
-        }
-        
-        for item in data["items"]:
-            year_val = item.get("year", "unknown")
-            refugees = item.get("refugees", 0)
-            
-            result["total_refugees"] += refugees
-            
-            if year_val not in result["by_year"]:
-                result["by_year"][year_val] = 0
-            result["by_year"][year_val] += refugees
-            
-        return result
-    else:
-        return {"error": "No data found", "status": "error"}
+    return fetch_unhcr_api_data("asylum-applications", coo=coo, coa=coa, year=year, coo_all=coo_all)
+
 
 @mcp.tool()
-def get_asylum_count(coa: str, year: Optional[Union[str, int]] = None) -> Dict[str, Any]:
+def get_rsd_decisions(coo: Optional[str] = None, 
+                     coa: Optional[str] = None, 
+                     year: Optional[Union[str, int]] = None,
+                     coo_all: bool = False) -> Dict[str, Any]:
     """
-    Get asylum statistics for a specific country of asylum.
+    Get RSD decision data from UNHCR.
     
     Args:
-        coa: Country of asylum (ISO 3-letter code)
-        year: Optional year filter
+        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
+        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
+        year: Year filter (comma-separated for multiple years)
+        coo_all: If True, break down results by all countries of origin
         
     Returns:
-        Asylum seekers count
+        UNHCR RSD Decisions data in a country of asylum
     """
-    data = fetch_unhcr_data(coa=coa, year=year)
-    
-    # Process the data to extract asylum statistics
-    if "items" in data and data["items"]:
-        result = {
-            "country_of_asylum": coa,
-            "total_refugees_hosted": 0,
-            "countries_of_origin": {},
-            "by_year": {}
-        }
-        
-        for item in data["items"]:
-            year_val = item.get("year", "unknown")
-            refugees = item.get("refugees", 0)
-            origin = item.get("coo_name", "Unknown")
-            
-            result["total_refugees_hosted"] += refugees
-            
-            # Track by country of origin
-            if origin not in result["countries_of_origin"]:
-                result["countries_of_origin"][origin] = 0
-            result["countries_of_origin"][origin] += refugees
-            
-            # Track by year
-            if year_val not in result["by_year"]:
-                result["by_year"][year_val] = 0
-            result["by_year"][year_val] += refugees
-            
-        return result
-    else:
-        return {"error": "No data found", "status": "error"}
+    return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all)
 
-@mcp.resource("unhcr://countries")
-def get_countries() -> str:
-    """
-    Get a list of countries with ISO3 codes, names, bureau, bureau code, and continent info.
-    
-    Returns:
-        A formatted string with extended country information
-    """
-    # Make a request to get some data that will include country information
-    data = fetch_unhcr_data(year="2022")
-    
-    # Create a dictionary mapping ISO codes to additional info
-    country_metadata = {
-        "KEN": {"name": "Kenya", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
-        "UGA": {"name": "Uganda", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
-        "ETH": {"name": "Ethiopia", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
-        "SDN": {"name": "Sudan", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
-        "SSD": {"name": "South Sudan", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
-        "TZA": {"name": "Tanzania", "bureau": "Regional Bureau of East Horn and Great Lake", "bureau_code": "RBEHAGL", "continent": "Africa"},
-        "EGY": {"name": "Egypt", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
-        "LBY": {"name": "Libya", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
-        "TUN": {"name": "Tunisia", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
-        "DZA": {"name": "Algeria", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Africa"},
-        "JOR": {"name": "Jordan", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Asia"},
-        "IRQ": {"name": "Iraq", "bureau": "Regional Bureau of Middle East", "bureau_code": "MENA", "continent": "Asia"},
-    }
-    
-    countries = set()
-    if "items" in data:
-        for item in data["items"]:
-            if "coo" in item and item["coo"] in country_metadata:
-                iso = item["coo"]
-                meta = country_metadata[iso]
-                countries.add((iso, meta["name"], meta["bureau"], meta["bureau_code"], meta["continent"]))
-            if "coa" in item and item["coa"] in country_metadata:
-                iso = item["coa"]
-                meta = country_metadata[iso]
-                countries.add((iso, meta["name"], meta["bureau"], meta["bureau_code"], meta["continent"]))
-    
-    # Sort countries by name
-    countries = sorted(list(countries), key=lambda x: x[1])
-    
-    # Format the output
-    result = "# UNHCR Country Information\n\n"
-    result += "ISO3 | Country Name | Bureau Name | Bureau Code | Continent\n"
-    result += "------|-------------|-------------|-------------|----------\n"
-    
-    for code, name, bureau, bureau_code, continent in countries:
-        result += f"{code} | {name} | {bureau} | {bureau_code} | {continent}\n"
-    
-    return result
-
-@mcp.resource("unhcr://stats/{year}")
-def get_yearly_stats(year: str) -> str:
-    """
-    Get global refugee statistics for a specific year.
-    
-    Args:
-        year: The year to get statistics for
-        
-    Returns:
-        A formatted string with yearly statistics
-    """
-    data = fetch_unhcr_data(year=year)
-    
-    if "items" in data and data["items"]:
-        total_refugees = sum(item.get("refugees", 0) for item in data["items"])
-        total_asylum_seekers = sum(item.get("asylum_seekers", 0) for item in data["items"])
-        total_idps = sum(item.get("idps", 0) for item in data["items"])
-        
-        # Get top countries of origin
-        origin_counts = {}
-        for item in data["items"]:
-            origin = item.get("coo_name", "Unknown")
-            refugees = item.get("refugees", 0)
-            if origin not in origin_counts:
-                origin_counts[origin] = 0
-            origin_counts[origin] += refugees
-        
-        top_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-        
-        # Get top countries of asylum
-        asylum_counts = {}
-        for item in data["items"]:
-            asylum = item.get("coa_name", "Unknown")
-            refugees = item.get("refugees", 0)
-            if asylum not in asylum_counts:
-                asylum_counts[asylum] = 0
-            asylum_counts[asylum] += refugees
-        
-        top_asylums = sorted(asylum_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-        
-        # Format the output
-        result = f"# Global Refugee Statistics for {year}\n\n"
-        result += f"Total refugees: {total_refugees:,}\n"
-        result += f"Total asylum seekers: {total_asylum_seekers:,}\n"
-        result += f"Total internally displaced persons: {total_idps:,}\n\n"
-        
-        result += "## Top 10 Countries of Origin\n\n"
-        result += "Country | Refugee Count\n"
-        result += "--------|-------------\n"
-        for country, count in top_origins:
-            result += f"{country} | {count:,}\n"
-        
-        result += "\n## Top 10 Countries of Asylum\n\n"
-        result += "Country | Refugee Count\n"
-        result += "--------|-------------\n"
-        for country, count in top_asylums:
-            result += f"{country} | {count:,}\n"
-        
-        return result
-    else:
-        return f"No data available for year {year}"
-
-@mcp.resource("unhcr://country/{country_code}")
-def get_country_profile(country_code: str) -> str:
-    """
-    Get a profile for a specific country, showing both origin and asylum statistics.
-    
-    Args:
-        country_code: ISO 3-letter country code
-        
-    Returns:
-        A formatted string with country profile
-    """
-    # Get data as country of origin
-    origin_data = fetch_unhcr_data(coo=country_code)
-    
-    # Get data as country of asylum
-    asylum_data = fetch_unhcr_data(coa=country_code)
-    
-    country_name = "Unknown"
-    
-    # Try to get the country name
-    if "items" in origin_data and origin_data["items"]:
-        country_name = origin_data["items"][0].get("coo_name", "Unknown")
-    elif "items" in asylum_data and asylum_data["items"]:
-        country_name = asylum_data["items"][0].get("coa_name", "Unknown")
-    
-    result = f"# {country_name} ({country_code}) Refugee Profile\n\n"
-    
-    # Process origin data
-    if "items" in origin_data and origin_data["items"]:
-        total_refugees_origin = sum(item.get("refugees", 0) for item in origin_data["items"])
-        
-        # Get top countries of asylum for this origin
-        asylum_counts = {}
-        for item in origin_data["items"]:
-            asylum = item.get("coa_name", "Unknown")
-            refugees = item.get("refugees", 0)
-            if asylum not in asylum_counts:
-                asylum_counts[asylum] = 0
-            asylum_counts[asylum] += refugees
-        
-        top_asylums = sorted(asylum_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        
-        result += f"## Refugees from {country_name}\n\n"
-        result += f"Total refugees: {total_refugees_origin:,}\n\n"
-        
-        result += "### Top 5 Countries of Asylum\n\n"
-        result += "Country | Refugee Count\n"
-        result += "--------|-------------\n"
-        for country, count in top_asylums:
-            result += f"{country} | {count:,}\n"
-    else:
-        result += f"## Refugees from {country_name}\n\n"
-        result += "No data available\n\n"
-    
-    # Process asylum data
-    if "items" in asylum_data and asylum_data["items"]:
-        total_refugees_asylum = sum(item.get("refugees", 0) for item in asylum_data["items"])
-        
-        # Get top countries of origin for this asylum
-        origin_counts = {}
-        for item in asylum_data["items"]:
-            origin = item.get("coo_name", "Unknown")
-            refugees = item.get("refugees", 0)
-            if origin not in origin_counts:
-                origin_counts[origin] = 0
-            origin_counts[origin] += refugees
-        
-        top_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        
-        result += f"\n## Refugees in {country_name}\n\n"
-        result += f"Total refugees hosted: {total_refugees_asylum:,}\n\n"
-        
-        result += "### Top 5 Countries of Origin\n\n"
-        result += "Country | Refugee Count\n"
-        result += "--------|-------------\n"
-        for country, count in top_origins:
-            result += f"{country} | {count:,}\n"
-    else:
-        result += f"\n## Refugees in {country_name}\n\n"
-        result += "No data available\n"
-    
-    return result
 
 if __name__ == "__main__":
     # Run the server

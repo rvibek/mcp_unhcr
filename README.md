@@ -1,111 +1,69 @@
 # UNHCR Population Data MCP Server
 
-This MCP (Model Context Protocol) server provides access to UNHCR population data through a standardized interface. It allows AI agents to query [UNHCR’s Refugee Population Statistics Database](https://www.unhcr.org/refugee-statistics) by country of origin, country of asylum, and year(s).
+This MCP (Model Context Protocol) server provides access to UNHCR data through a standardized interface. It allows AI agents to query data related to forcibly displaced persons, including population statistics, Refugee Status Determination (RSD) applications, and RSD decisions. The data can be filtered by country of origin, country of asylum, and year(s).
+
+This server interacts with the [UNHCR Population Statistics API](https://api.unhcr.org/population/v1/).
 
 ## Features
 
-- Query total population data by country of origin, country of asylum, and year(s)
-- Get refugee/asylum seekers counts for specific country of origin and asylum
-- Access country profiles with both origin and asylum statistics
-- View global refugee statistics by year
+- Query population data from UNHCR.
+- Query Refugee Status Determination (RSD) application data from UNHCR.
+- Query Refugee Status Determination (RSD) decision data from UNHCR.
+- Filter data by country of origin (ISO3 code), country of asylum (ISO3 code), and year(s).
+- Option to break down results by all countries of origin.
 
-## Installation
+## Connect to MCP Server
 
-### Prerequisites
+To access the server, open your web browser and visit the following URL:
+[https://smithery.ai/server/@rvibek/mcp_unhcr](https://smithery.ai/server/@rvibek/mcp_unhcr)
 
-- Python 3.8 or higher
-- pip or another Python package manager
+## API Endpoints and Query Parameters
 
-### Setup
+The server fetches data from the following base URL: `https://api.unhcr.org/population/v1/` using these specific endpoints:
+- `population/`
+- `asylum-applications/`
+- `asylum-decisions/`
 
-1. Clone this repository:
-
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-## Usage
-
-### Running Locally
-
-To run the server locally in development mode:
-
-```bash
-python app.py
-```
-
-This will start the MCP server in development mode, allowing you to interact with it using the MCP Inspector or other MCP clients.
-
-### Deploying to Smithery.ai
-
-This server is configured for deployment on [Smithery.ai](https://smithery.ai/), a platform for hosting MCP servers.
-
-1. Add your server to Smithery (or claim it if it's already listed)
-2. Click Deploy on the Smithery Deployments tab on your server page
-
-## API Endpoint
-
-This server interacts with the UNHCR Population API:
-
-```
-https://api.unhcr.org/population/v1/population/
-```
-
-### Query Parameters
-
-- `cf_type`: Always set to "ISO"
-- `coo`: Country of origin filter (ISO 3-letter country codes, comma-separated for multiple)
-- `coa`: Country of asylum filter (ISO 3-letter country codes, comma-separated for multiple)
-- `year`: Year filter (comma-separated for multiple years)
+Key query parameters used by the server when calling the UNHCR API:
+- `cf_type`: Always set to "ISO".
+- `coo`: Country of origin filter (ISO3 code, comma-separated for multiple).
+- `coa`: Country of asylum filter (ISO3 code, comma-separated for multiple).
+- `year[]`: Year(s) to filter by (e.g., "2023" or ["2022", "2023"]). Defaults to "2024" if not provided.
+- `coo_all`: Set to "true" if results should be broken down by all countries of origin.
 
 ## MCP Tools
 
+The server exposes the following tools:
+
 ### `get_population_data`
 
-Get raw population data from UNHCR with optional filtering.
+Get population data from UNHCR.
 
 **Parameters:**
-- `coo` (optional): Country of origin filter (ISO 3-letter code, comma-separated for multiple)
-- `coa` (optional): Country of asylum filter (ISO 3-letter code, comma-separated for multiple)
-- `year` (optional): Year filter (comma-separated for multiple years)
+- `coo` (optional): Country of origin filter (ISO3 code, comma-separated for multiple).
+- `coa` (optional): Country of asylum filter (ISO3 code, comma-separated for multiple).
+- `year` (optional): Year filter (comma-separated for multiple years, or a single year). Defaults to 2024 if not provided.
+- `coo_all` (optional, boolean): If `True`, break down results by all countries of origin. Defaults to `False`.
 
-### `get_refugee_count`
+### `get_rsd_applications`
 
-Get refugee count for a specific country of origin.
-
-**Parameters:**
-- `coo`: Country of origin (ISO 3-letter code)
-- `coa` (optional): Country of asylum filter (ISO 3-letter code)
-- `year` (optional): Year filter
-
-### `get_asylum_count`
-
-Get asylum statistics for a specific country of asylum.
+Get RSD application data from UNHCR.
 
 **Parameters:**
-- `coa`: Country of asylum (ISO 3-letter code)
-- `year` (optional): Year filter
+- `coo` (optional): Country of origin filter (ISO3 code, comma-separated for multiple).
+- `coa` (optional): Country of asylum filter (ISO3 code, comma-separated for multiple).
+- `year` (optional): Year filter (comma-separated for multiple years, or a single year). Defaults to 2024 if not provided.
+- `coo_all` (optional, boolean): If `True`, break down results by all countries of origin. Defaults to `False`.
 
-## MCP Resources
+### `get_rsd_decisions`
 
-### `unhcr://countries`
-
-Get a list of countries with their ISO codes.
-
-### `unhcr://stats/{year}`
-
-Get global refugee statistics for a specific year.
+Get RSD decision data from UNHCR.
 
 **Parameters:**
-- `year`: The year to get statistics for
-
-### `unhcr://country/{country_code}`
-
-Get a profile for a specific country, showing both origin and asylum statistics.
-
-**Parameters:**
-- `country_code`: ISO 3-letter country code
+- `coo` (optional): Country of origin filter (ISO3 code, comma-separated for multiple).
+- `coa` (optional): Country of asylum filter (ISO3 code, comma-separated for multiple).
+- `year` (optional): Year filter (comma-separated for multiple years, or a single year). Defaults to 2024 if not provided.
+- `coo_all` (optional, boolean): If `True`, break down results by all countries of origin. Defaults to `False`.
 
 ## License
 
