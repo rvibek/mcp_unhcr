@@ -17,6 +17,8 @@ This server interacts with the [UNHCR Population Statistics API](https://api.unh
 To access the server, open your web browser and visit the following URL:
 [https://smithery.ai/server/@rvibek/mcp_unhcr](https://smithery.ai/server/@rvibek/mcp_unhcr)
 
+[![smithery badge](https://smithery.ai/badge/@rvibek/mcp_unhcr)](https://smithery.ai/server/@rvibek/mcp_unhcr)
+
 ## API Endpoints and Query Parameters
 
 The server fetches data from the following base URL: `https://api.unhcr.org/population/v1/` using these specific endpoints:
