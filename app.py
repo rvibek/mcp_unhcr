@@ -33,12 +33,32 @@ def fetch_unhcr_api_data(endpoint: str,
     Generic function to fetch data from various UNHCR API endpoints.
     
     Args:
-        endpoint: API endpoint name ("population", "asylum-applications", or "asylum-decisions")
-        coo: Country of origin (ISO3 code, comma-separated for multiple)
-        coa: Country of asylum (ISO3 code, comma-separated for multiple)
-        year: Year(s) to filter by (comma-separated for multiple years), defaults to 2024 if not provided
-        coo_all: If True, break down results by all countries of origin or originating countries
-        coa_all: If True, break down results by all countries of asylum or asylum countries
+        endpoint: API endpoint name to query. Options:
+            - "population" - For refugee population statistics
+            - "asylum-applications" - For RSD application statistics
+            - "asylum-decisions" - For RSD decision outcomes
+        
+        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
+            Example: "KEN" for Kenya, "TIB,SOM,ETH" for Tibet, Somalia and Ethiopia
+        
+        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
+            Example: "UGA" for Uganda, "KEN,TZA" for Kenya and Tanzania
+        
+        year: Year filter (comma-separated for multiple years), defaults to 2024 if not provided
+            Example: "2024" or "2022,2023,2024"
+        
+        coo_all: Set to True when requesting data breakdown by countries of origin
+            - This parameter tells the API to return data for ALL countries of origin
+            - Critical for analyzing which nationalities are present in a given asylum country
+        
+        coa_all: Set to True when requesting data breakdown by countries of asylum
+            - This parameter tells the API to return data for ALL countries of asylum
+            - Critical for analyzing which countries are hosting refugees from a given origin
+        
+        Technical details:
+        - The API expects string "true" values for boolean parameters
+        - Year is passed as "year[]" parameter to the API
+        - Multiple years require array-style parameter formatting
         
     Returns:
         Dict containing the API response
@@ -88,14 +108,19 @@ def get_population_data(coo: Optional[str] = None,
                         coo_all: bool = False,
                         coa_all: bool = False) -> Dict[str, Any]:
     """
-    Get population data from UNHCR.
+    Get refugee population data from UNHCR.
     
     Args:
-        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
-        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
-        year: Year filter (comma-separated for multiple years)
-        coo_all: If True, break down results by all countries of origin or originating countries
-        coa_all: If True, break down results by all countries of asylum or asylum countries
+        coo: Country of origin (ISO3 code) - Use for questions about refugees FROM a specific country
+        coa: Country of asylum (ISO3 code) - Use for questions about refugees IN a specific country
+        year: Year to filter by (defaults to 2024)
+        coo_all: Set to True when breaking down results by ORIGIN country
+        coa_all: Set to True when breaking down results by ASYLUM country
+    
+    Important:
+        - For "Where are refugees from COUNTRY living?" use coo="COUNTRY" and coa_all=True
+        - For "How many refugees are living in COUNTRY?" use coa="COUNTRY"
+        - For "What countries do refugees in COUNTRY come from?" use coa="COUNTRY" and coo_all=True
         
     Returns:
         Population data from UNHCR
@@ -113,11 +138,27 @@ def get_rsd_applications(coo: Optional[str] = None,
     Get RSD application data from UNHCR.
     
     Args:
-        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
-        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
-        year: Year filter (comma-separated for multiple years)
-        coo_all: If True, break down results by all countries of origin or originating countries
-        coa_all: If True, break down results by all countries of asylum or asylum countries
+        coo: Country of origin filter (ISO3 code, comma-separated for multiple) - Use for questions about asylum seekers FROM a specific country
+        coa: Country of asylum filter (ISO3 code, comma-separated for multiple) - Use for questions about asylum applications IN a specific country
+        year: Year filter (comma-separated for multiple years) - defaults to 2024 if not provided
+        coo_all:  Set to True when analyzing the ORIGIN COUNTRIES of asylum seekers
+            - Use when answering: "Which nationalities applied for asylum in Germany?"
+        coa_all: Set to True when analyzing the ASYLUM COUNTRIES where applications were filed
+            - Use when answering: "Where did Syrians apply for asylum?" (breakdown by country)
+            - Do NOT use when answering: "How many asylum applications were filed in Germany?"
+        
+        Important query patterns:
+        - "How many [nationality] people applied for asylum in [country]?"
+            → Use coo="[nationality code]" and coa="[country code]"
+        
+        - "Where did [nationality] people apply for asylum?"
+            → Use coo="[nationality code]" and coa_all=True
+        
+        - "Who applied for asylum in [country]?"
+            → Use coa="[country code]" and coo_all=True
+        
+        - "How many asylum applications were there in [year]?"
+            → Use year="[year]" with appropriate coo/coa filters if needed
         
     Returns:
         UNHCR RSD Applications data in a country of asylum
@@ -132,17 +173,45 @@ def get_rsd_decisions(coo: Optional[str] = None,
                      coo_all: bool = False,
                      coa_all: bool = False) -> Dict[str, Any]:
     """
-    Get RSD decision data from UNHCR.
+    Get Refugee Status Determination (RSD) decision data from UNHCR.
     
     Args:
-        coo: Country of origin filter (ISO3 code, comma-separated for multiple)
-        coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
-        year: Year filter (comma-separated for multiple years)
-        coo_all: If True, break down results by all countries of origin or originating countries
-        coa_all: If True, break down results by all countries of asylum or asylum countries
+        coo: Country of origin filter (ISO3 code, comma-separated for multiple) - Use for questions about asylum decisions FOR people FROM a specific country
+             Example: "SYR" for Syria, "AFG,IRQ" for Afghanistan and Iraq
+        
+        coa: Country of asylum filter (ISO3 code, comma-separated for multiple) - Use for questions about asylum decisions MADE IN a specific country
+             Example: "DEU" for Germany, "FRA,ITA" for France and Italy
+        
+        year: Year filter (comma-separated for multiple years) - defaults to 2024 if not provided
+             Example: "2023" or "2022,2023,2024" for multiple years
+        
+        coo_all: Set to True when analyzing decisions breakdown BY NATIONALITY of asylum seekers
+            - Use when answering: "Which nationalities received asylum decisions in Germany?"
+            - Use when answering: "What was the approval rate for different nationalities in France?"
+        
+        coa_all: Set to True when analyzing decisions breakdown BY COUNTRY where decisions were made
+            - Use when answering: "Where did Syrians receive asylum decisions?" (breakdown by country)
+            - Use when answering: "Which countries approved/rejected the most Eritrean asylum claims?"
+        
+    Important query patterns:
+        - "How many [nationality] people were granted/rejected asylum in [country]?"
+            → Use coo="[nationality code]" and coa="[country code]"
+        
+        - "Where did [nationality] people receive positive/negative asylum decisions?"
+            → Use coo="[nationality code]" and coa_all=True
+        
+        - "What was the asylum approval rate for different nationalities in [country]?"
+            → Use coa="[country code]" and coo_all=True
+        
+        - "How many asylum decisions were made in [year]?"
+            → Use year="[year]" with appropriate coo/coa filters if needed
+        
+        - "What was the recognition rate for [nationality] refugees in [country]?"
+            → Use coo="[nationality code]" and coa="[country code]"
         
     Returns:
-        UNHCR RSD Decisions data in a country of asylum
+        UNHCR RSD Decision data including counts of recognized, rejected, and otherwise closed cases
+        with statistics on recognition rates and processing efficiency
     """
     return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
