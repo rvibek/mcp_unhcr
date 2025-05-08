@@ -27,7 +27,8 @@ def fetch_unhcr_api_data(endpoint: str,
                          coo: Optional[str] = None,
                          coa: Optional[str] = None,
                          year: Optional[Union[str, int]] = None,
-                         coo_all: bool = False) -> Dict[str, Any]:
+                         coo_all: bool = False,
+                         coa_all: bool = False) -> Dict[str, Any]:
     """
     Generic function to fetch data from various UNHCR API endpoints.
     
@@ -36,7 +37,8 @@ def fetch_unhcr_api_data(endpoint: str,
         coo: Country of origin (ISO3 code, comma-separated for multiple)
         coa: Country of asylum (ISO3 code, comma-separated for multiple)
         year: Year(s) to filter by (comma-separated for multiple years), defaults to 2024 if not provided
-        coo_all: If True, break down results by all countries of origin
+        coo_all: If True, break down results by all countries of origin or originating countries
+        coa_all: If True, break down results by all countries of asylum or asylum countries
         
     Returns:
         Dict containing the API response
@@ -49,6 +51,8 @@ def fetch_unhcr_api_data(endpoint: str,
         params["coa"] = coa
     if coo_all:
         params["coo_all"] = "true"  # API expects a string "true", not a boolean
+    if coa_all:
+        params["coa_all"] = "true"  # API expects a string "true", not a boolean
         
     # Handle the year parameter
     if year is None:
@@ -81,7 +85,8 @@ def fetch_unhcr_api_data(endpoint: str,
 def get_population_data(coo: Optional[str] = None, 
                         coa: Optional[str] = None, 
                         year: Optional[Union[str, int]] = None,
-                        coo_all: bool = False) -> Dict[str, Any]:
+                        coo_all: bool = False,
+                        coa_all: bool = False) -> Dict[str, Any]:
     """
     Get population data from UNHCR.
     
@@ -89,19 +94,21 @@ def get_population_data(coo: Optional[str] = None,
         coo: Country of origin filter (ISO3 code, comma-separated for multiple)
         coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
         year: Year filter (comma-separated for multiple years)
-        coo_all: If True, break down results by all countries of origin
+        coo_all: If True, break down results by all countries of origin or originating countries
+        coa_all: If True, break down results by all countries of asylum or asylum countries
         
     Returns:
         Population data from UNHCR
     """
-    return fetch_unhcr_api_data("population", coo=coo, coa=coa, year=year, coo_all=coo_all)
+    return fetch_unhcr_api_data("population", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
 
 @mcp.tool()
 def get_rsd_applications(coo: Optional[str] = None, 
                         coa: Optional[str] = None, 
                         year: Optional[Union[str, int]] = None,
-                        coo_all: bool = False) -> Dict[str, Any]:
+                        coo_all: bool = False,
+                        coa_all: bool = False) -> Dict[str, Any]:
     """
     Get RSD application data from UNHCR.
     
@@ -109,19 +116,21 @@ def get_rsd_applications(coo: Optional[str] = None,
         coo: Country of origin filter (ISO3 code, comma-separated for multiple)
         coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
         year: Year filter (comma-separated for multiple years)
-        coo_all: If True, break down results by all countries of origin
+        coo_all: If True, break down results by all countries of origin or originating countries
+        coa_all: If True, break down results by all countries of asylum or asylum countries
         
     Returns:
         UNHCR RSD Applications data in a country of asylum
     """
-    return fetch_unhcr_api_data("asylum-applications", coo=coo, coa=coa, year=year, coo_all=coo_all)
+    return fetch_unhcr_api_data("asylum-applications", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
 
 @mcp.tool()
 def get_rsd_decisions(coo: Optional[str] = None, 
                      coa: Optional[str] = None, 
                      year: Optional[Union[str, int]] = None,
-                     coo_all: bool = False) -> Dict[str, Any]:
+                     coo_all: bool = False,
+                     coa_all: bool = False) -> Dict[str, Any]:
     """
     Get RSD decision data from UNHCR.
     
@@ -129,15 +138,16 @@ def get_rsd_decisions(coo: Optional[str] = None,
         coo: Country of origin filter (ISO3 code, comma-separated for multiple)
         coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
         year: Year filter (comma-separated for multiple years)
-        coo_all: If True, break down results by all countries of origin
+        coo_all: If True, break down results by all countries of origin or originating countries
+        coa_all: If True, break down results by all countries of asylum or asylum countries
         
     Returns:
         UNHCR RSD Decisions data in a country of asylum
     """
-    return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all)
+    return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
 
 if __name__ == "__main__":
     # Run the server
-    print("MCP server running in development mode. Press Ctrl+C to stop.")
+    print("MCP server running. Press Ctrl+C to stop.")
     mcp.run()
