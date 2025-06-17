@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/rvibek-mcp-unhcr-badge.png)](https://mseep.ai/app/rvibek-mcp-unhcr)
+
 # UNHCR Population Data MCP Server
 
 This MCP (Model Context Protocol) server provides access to UNHCR data through a standardized interface. It allows AI agents to query data related to forcibly displaced persons, including population statistics, Refugee Status Determination (RSD) applications, and RSD decisions. The data can be filtered by country of origin, country of asylum, and year(s).
