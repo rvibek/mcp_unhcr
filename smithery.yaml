@@ -1,4 +1,6 @@
 
+runtime: python
+
 startCommand:
-  type: stdio
+  type: http
   command: python app.py
