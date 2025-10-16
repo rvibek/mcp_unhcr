@@ -235,6 +235,27 @@ if __name__ == "__main__":
         }
 
         class SimpleJSONRPCHandler(BaseHTTPRequestHandler):
+            def log_request_info(self, body: str = None):
+                # Log headers and a truncated body to help remote debugging
+                try:
+                    headers = {k: v for k, v in self.headers.items()}
+                    logger.info(f"Incoming request path={self.path} headers={headers}")
+                    if body is not None:
+                        body_preview = (body[:1000] + '...') if len(body) > 1000 else body
+                        logger.info(f"Incoming request body (truncated): {body_preview}")
+                except Exception:
+                    logger.exception("Failed to log request info")
+
+            def do_GET(self):
+                # Simple health endpoint so scanners can probe with GET
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                resp = {"status": "ok", "server": "unhcr-mcp"}
+                body = json.dumps(resp).encode('utf-8')
+                logger.info(f"Health check GET {self.path} -> 200")
+                self.wfile.write(body)
             def _set_headers(self, status=200):
                 self.send_response(status)
                 self.send_header('Content-Type', 'application/json')
@@ -274,6 +295,7 @@ if __name__ == "__main__":
                     length = int(self.headers.get('Content-Length', 0))
                     body = self.rfile.read(length).decode('utf-8')
                 try:
+                    self.log_request_info(body)
                     payload = json.loads(body)
                 except Exception:
                     self._set_headers(400)
