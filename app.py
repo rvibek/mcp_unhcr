@@ -247,8 +247,32 @@ if __name__ == "__main__":
                 self._set_headers()
 
             def do_POST(self):
-                length = int(self.headers.get('Content-Length', 0))
-                body = self.rfile.read(length).decode('utf-8')
+                # Read request body robustly: support Content-Length and chunked transfer encoding
+                transfer_encoding = self.headers.get('Transfer-Encoding', '').lower()
+                if 'chunked' in transfer_encoding:
+                    # Read chunked body
+                    chunks = []
+                    while True:
+                        # Read chunk size line
+                        line = self.rfile.readline()
+                        if not line:
+                            break
+                        try:
+                            chunk_size = int(line.strip().split(b';')[0], 16)
+                        except Exception:
+                            break
+                        if chunk_size == 0:
+                            # consume trailer and final CRLF
+                            self.rfile.readline()
+                            break
+                        chunk = self.rfile.read(chunk_size)
+                        chunks.append(chunk)
+                        # consume CRLF after chunk
+                        self.rfile.read(2)
+                    body = b''.join(chunks).decode('utf-8')
+                else:
+                    length = int(self.headers.get('Content-Length', 0))
+                    body = self.rfile.read(length).decode('utf-8')
                 try:
                     payload = json.loads(body)
                 except Exception:
