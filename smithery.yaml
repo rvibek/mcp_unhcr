@@ -1,5 +1,6 @@
 
 runtime: python
+pythonVersion: "3.10"
 
 startCommand:
   type: http
