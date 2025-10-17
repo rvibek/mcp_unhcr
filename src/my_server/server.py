@@ -15,6 +15,11 @@ from urllib.parse import urlencode
 
 import requests
 from mcp.server.fastmcp import Context, FastMCP
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
+import inspect
+import argparse
+from typing import Callable
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -217,6 +222,140 @@ def get_rsd_decisions(coo: Optional[str] = None,
 
 
 if __name__ == "__main__":
-    # Run the server
-    print("MCP server running. Press Ctrl+C to stop.")
-    mcp.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--http", action="store_true", help="Run a minimal HTTP JSON-RPC endpoint for Smithery scans")
+    args = parser.parse_args()
+
+    if args.http:
+        # Build a simple mapping of tool functions to call directly
+        tools: Dict[str, Callable] = {
+            "get_population_data": get_population_data,
+            "get_rsd_applications": get_rsd_applications,
+            "get_rsd_decisions": get_rsd_decisions,
+        }
+
+        class SimpleJSONRPCHandler(BaseHTTPRequestHandler):
+            def log_request_info(self, body: str = None):
+                # Log headers and a truncated body to help remote debugging
+                try:
+                    headers = {k: v for k, v in self.headers.items()}
+                    logger.info(f"Incoming request path={self.path} headers={headers}")
+                    if body is not None:
+                        body_preview = (body[:1000] + '...') if len(body) > 1000 else body
+                        logger.info(f"Incoming request body (truncated): {body_preview}")
+                except Exception:
+                    logger.exception("Failed to log request info")
+
+            def do_GET(self):
+                # Simple health endpoint so scanners can probe with GET
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                resp = {"status": "ok", "server": "unhcr-mcp"}
+                body = json.dumps(resp).encode('utf-8')
+                logger.info(f"Health check GET {self.path} -> 200")
+                self.wfile.write(body)
+            def _set_headers(self, status=200):
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.end_headers()
+
+            def do_OPTIONS(self):
+                self._set_headers()
+
+            def do_POST(self):
+                # Read request body robustly: support Content-Length and chunked transfer encoding
+                transfer_encoding = self.headers.get('Transfer-Encoding', '').lower()
+                if 'chunked' in transfer_encoding:
+                    # Read chunked body
+                    chunks = []
+                    while True:
+                        # Read chunk size line
+                        line = self.rfile.readline()
+                        if not line:
+                            break
+                        try:
+                            chunk_size = int(line.strip().split(b';')[0], 16)
+                        except Exception:
+                            break
+                        if chunk_size == 0:
+                            # consume trailer and final CRLF
+                            self.rfile.readline()
+                            break
+                        chunk = self.rfile.read(chunk_size)
+                        chunks.append(chunk)
+                        # consume CRLF after chunk
+                        self.rfile.read(2)
+                    body = b''.join(chunks).decode('utf-8')
+                else:
+                    length = int(self.headers.get('Content-Length', 0))
+                    body = self.rfile.read(length).decode('utf-8')
+                try:
+                    self.log_request_info(body)
+                    payload = json.loads(body)
+                except Exception:
+                    self._set_headers(400)
+                    self.wfile.write(json.dumps({"error": "invalid json"}).encode())
+                    return
+
+                # Minimal handling for initialize
+                if payload.get('method') == 'initialize':
+                    result = {
+                        "capabilities": {
+                            "tools": [
+                                {"name": name, "params": [p for p in inspect.signature(func).parameters.keys()]} 
+                                for name, func in tools.items()
+                            ]
+                        }
+                    }
+                    response = {"jsonrpc": "2.0", "id": payload.get('id'), "result": result}
+                    self._set_headers(200)
+                    self.wfile.write(json.dumps(response).encode())
+                    return
+
+                # Route to tool functions if they exist
+                method = payload.get('method')
+                if method in tools:
+                    params = payload.get('params', {})
+                    try:
+                        # Call tool function (pass only matching kwargs)
+                        sig = inspect.signature(tools[method])
+                        call_kwargs = {k: v for k, v in params.items() if k in sig.parameters}
+                        res = tools[method](**call_kwargs)
+                        response = {"jsonrpc": "2.0", "id": payload.get('id'), "result": res}
+                        self._set_headers(200)
+                        self.wfile.write(json.dumps(response).encode())
+                    except Exception as e:
+                        response = {"jsonrpc": "2.0", "id": payload.get('id'), "error": {"code": -32000, "message": str(e)}}
+                        self._set_headers(500)
+                        self.wfile.write(json.dumps(response).encode())
+                    return
+
+                # Unknown method
+                response = {"jsonrpc": "2.0", "id": payload.get('id'), "error": {"code": -32601, "message": "Method not found"}}
+                self._set_headers(404)
+                self.wfile.write(json.dumps(response).encode())
+
+        host = '0.0.0.0'
+        port = int(__import__('os').environ.get('PORT', 8080))
+        server = HTTPServer((host, port), SimpleJSONRPCHandler)
+
+        def serve():
+            logger.info(f"Starting minimal HTTP JSON-RPC server on {host}:{port}")
+            try:
+                server.serve_forever()
+            except KeyboardInterrupt:
+                pass
+
+        t = threading.Thread(target=serve, daemon=True)
+        t.start()
+        print("HTTP MCP probe server running. Press Ctrl+C to stop.")
+        t.join()
+    else:
+        # Run the server over stdio (default FastMCP behavior)
+        print("MCP server running. Press Ctrl+C to stop.")
+        mcp.run()

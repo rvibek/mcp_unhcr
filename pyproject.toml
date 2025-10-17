@@ -7,10 +7,26 @@ name = "my_server"
 version = "0.1.0"
 description = "UNHCR MCP Smithery Server"
 readme = "README.md"
+<<<<<<< HEAD
 requires-python = ">=3.12"
 dependencies = [
     "mcp>=1.15.0",
     "smithery>=0.4.2",
+=======
+authors = [
+    {name = "MCP Developer"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]==1.13.1",
+    "requests>=2.28.0"
+>>>>>>> 08f07d6aff80762c00c4b155bd27db297ccf9d52
 ]
 
 [project.scripts]
