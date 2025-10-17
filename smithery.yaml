@@ -1,13 +1,1 @@
-<<<<<<< HEAD
 runtime: "python"
-=======
-
-
-runtime: python
-python_version: "3.10"
-
-startCommand:
-  type: http
-  command: python app.py --http
-# update
->>>>>>> 08f07d6aff80762c00c4b155bd27db297ccf9d52
