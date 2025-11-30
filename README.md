@@ -9,6 +9,7 @@ This server interacts with the [UNHCR Population Statistics APIs](https://api.un
 - Query forcibly displaced population data.
 - Query Refugee Status Determination (RSD) application data.
 - Query Refugee Status Determination (RSD) decision data.
+- Query Durable Solutions including, resettlements, returned refugee, returned IDPs etc.
 - Filter data by country of origin (ISO3 code), country of asylum (ISO3 code), and year(s).
 - Option to break down results by all countries of origin and countries of asylum
 
@@ -27,6 +28,7 @@ The server fetches data from the following base URL: `https://api.unhcr.org/popu
 - `population/`
 - `asylum-applications/`
 - `asylum-decisions/`
+- `solutions`
 
 Key query parameters used by the server when calling the UNHCR API:
 - `cf_type`: Always set to "ISO".
@@ -74,12 +76,22 @@ Get RSD decision data from UNHCR.
 - `coo_all` (optional, boolean): If `True`, break down results by all countries of origin. Defaults to `False`.
 - `coa_all` (optional, boolean): If `True`, break down results by all countries of asylum. Defaults to `False`.
 
+### `get_solutions`
+
+Get RSD decision data from UNHCR.
+
+**Parameters:**
+- `coo` (optional): Country of origin filter (ISO3 code, comma-separated for multiple).
+- `coa` (optional): Country of asylum filter (ISO3 code, comma-separated for multiple).
+- `year` (optional): Year filter (comma-separated for multiple years, or a single year). Defaults to 2024 if not provided.
+- `coo_all` (optional, boolean): If `True`, break down results by all countries of origin. Defaults to `False`.
+- `coa_all` (optional, boolean): If `True`, break down results by all countries of asylum. Defaults to `False`.
+
 
 
 ## To-do
 - Add `year_from` and `year_to` parameter
 - Include `nowcasting` endpoint
-- Include `resettlement` endpoint
 
 
 ## License

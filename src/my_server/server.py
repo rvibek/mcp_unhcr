@@ -125,4 +125,22 @@ def create_server():
         """
         return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
+    @server.tool()
+    def get_solutions(coo: Optional[str] = None, 
+                         coa: Optional[str] = None, 
+                         year: Optional[Union[str, int]] = None,
+                         coo_all: bool = False,
+                         coa_all: bool = False) -> Dict[str, Any]:
+        """
+        Get figures on durable solutions from UNHCR which includes refugee returnees (returned_refugees), resettlement, naturalisation, retuned IDPs (returned_idps)
+        
+        Args:
+            coo: Country of origin filter (ISO3 code, comma-separated for multiple)
+            coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
+            year: Year filter (comma-separated for multiple years) - defaults to 2024
+            coo_all: Set to True when analyzing decisions breakdown BY NATIONALITY
+            coa_all: Set to True when analyzing decisions breakdown BY COUNTRY
+        """
+        return fetch_unhcr_api_data("solutions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
+
     return server
