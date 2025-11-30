@@ -1,5 +1,7 @@
 # UNHCR Population Data MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@rvibek/mcp_unhcr)](https://smithery.ai/server/@rvibek/mcp_unhcr)
+
 This MCP (Model Context Protocol) server in smithery.ai provides access to UNHCR data through a standardized interface. It allows AI agents to query data related to forcibly displaced persons, including population statistics, Refugee Status Determination (RSD) applications, and RSD decisions. The data can be filtered by country of origin, country of asylum, and year(s).
 
 This server interacts with the [UNHCR Population Statistics APIs](https://api.unhcr.org/).
@@ -19,8 +21,6 @@ To access the server, open your web browser and visit the following URL:
 [https://smithery.ai/server/@rvibek/mcp_unhcr](https://smithery.ai/server/@rvibek/mcp_unhcr)
 
 Configure the MCP host/client as needed.
-
-[![smithery badge](https://smithery.ai/badge/@rvibek/mcp_unhcr)](https://smithery.ai/server/@rvibek/mcp_unhcr)
 
 ## API Endpoints and Query Parameters
 
