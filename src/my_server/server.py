@@ -181,3 +181,7 @@ def create_server():
         return fetch_unhcr_api_data("solutions", coo=coo, coa=coa, year=year_to_use, coo_all=coo_all, coa_all=coa_all)
 
     return server
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(server.app, host="0.0.0.0", port=8000)
