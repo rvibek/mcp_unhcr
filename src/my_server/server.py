@@ -117,7 +117,6 @@ def create_server():
     #     return fetch_unhcr_api_data("demographics", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all, pop_type=pop_type)
     
 
-
     @server.tool()
     def get_rsd_applications(coo: Optional[str] = None, 
                             coa: Optional[str] = None, 
