@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-UNHCR Population Data MCP Server
+UNHCR forcibly displaced populations Data MCP Server
 
 This MCP server provides access to various UNHCR endpoints through the Model Context Protocol.
 It allows querying data around forcibly displaced persons by country of origin, country of asylum, and year(s), as well as provide data on Refugee Status Determination (RSD) Applications and Refugee Status Determination (RSD) decisions
@@ -36,7 +36,8 @@ def create_server():
                              coa: Optional[str] = None,
                              year: Optional[Union[str, int]] = None,
                              coo_all: bool = False,
-                             coa_all: bool = False) -> Dict[str, Any]:
+                             coa_all: bool = False,
+                             pop_type: Optional[bool] = None) -> Dict[str, Any]:
         """
         Generic function to fetch data from various UNHCR API endpoints.
         """
@@ -50,9 +51,12 @@ def create_server():
             params["coo_all"] = "true"
         if coa_all:
             params["coa_all"] = "true"
-            
+        
+        if pop_type is True:  # Check for True, not just truthy
+            params["pop_type"] = "true"            
+        
         if year is None:
-            params["year[]"] = "2024"
+            params["year[]"] = "2025"
         else:
             year_str = str(year)
             if "," in year_str:
@@ -73,6 +77,7 @@ def create_server():
             logger.error(f"Error fetching UNHCR {endpoint} data: {e}")
             return {"error": str(e), "status": "error"}
 
+
     @server.tool()
     def get_population_data(coo: Optional[str] = None, 
                             coa: Optional[str] = None, 
@@ -80,16 +85,39 @@ def create_server():
                             coo_all: bool = False,
                             coa_all: bool = False) -> Dict[str, Any]:
         """
-        Get refugee population data from UNHCR.
+        Get forcibly displaced populations like refugees, asylum seekers, stateless persons data from UNHCR.
         
         Args:
             coo: Country of origin (ISO3 code) - Use for questions about refugees FROM a specific country
             coa: Country of asylum (ISO3 code) - Use for questions about refugees IN a specific country
-            year: Year to filter by (defaults to 2024)
+            year: Year to filter by (defaults to 2025)
             coo_all: Set to True when breaking down results by ORIGIN country
             coa_all: Set to True when breaking down results by ASYLUM country
         """
         return fetch_unhcr_api_data("population", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
+
+
+    @server.tool()
+    def get_demographics_data(coo: Optional[str] = None, 
+                            coa: Optional[str] = None, 
+                            year: Optional[Union[str, int]] = None,
+                            coo_all: bool = False,
+                            coa_all: bool = False,
+                            pop_type: bool = False) -> Dict[str, Any]:
+        """
+        Get forcibly displaced populations demographics data from UNHCR. It shows breakdown by age and sex when available.
+        
+        Args:
+            coo: Country of origin (ISO3 code) - Use for questions about forcibly displaced populations FROM a specific country
+            coa: Country of asylum (ISO3 code) - Use for questions about forcibly displaced populations IN a specific country
+            year: Year to filter by (defaults to 2025)
+            coo_all: Set to True when breaking down results by ORIGIN country
+            coa_all: Set to True when breaking down results by ASYLUM country
+            pop_type: Set to True when asked about specific population types (e.g., refugees, asylum seekers, stateless persons)
+        """
+        return fetch_unhcr_api_data("demographics", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all, pop_type=pop_type)
+    
+
 
     @server.tool()
     def get_rsd_applications(coo: Optional[str] = None, 
@@ -103,11 +131,12 @@ def create_server():
         Args:
             coo: Country of origin filter (ISO3 code, comma-separated for multiple)
             coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
-            year: Year filter (comma-separated for multiple years) - defaults to 2024
+            year: Year filter (comma-separated for multiple years) - defaults to 2025
             coo_all: Set to True when analyzing the ORIGIN COUNTRIES of asylum seekers
             coa_all: Set to True when analyzing the ASYLUM COUNTRIES where applications were filed
         """
         return fetch_unhcr_api_data("asylum-applications", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
+
 
     @server.tool()
     def get_rsd_decisions(coo: Optional[str] = None, 
@@ -121,10 +150,30 @@ def create_server():
         Args:
             coo: Country of origin filter (ISO3 code, comma-separated for multiple)
             coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
-            year: Year filter (comma-separated for multiple years) - defaults to 2024
+            year: Year filter (comma-separated for multiple years) - defaults to 2025
             coo_all: Set to True when analyzing decisions breakdown BY NATIONALITY
             coa_all: Set to True when analyzing decisions breakdown BY COUNTRY
         """
         return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
+
+
+    @server.tool()
+    def get_solutions(coo: Optional[str] = None, 
+                        coa: Optional[str] = None, 
+                        year: Optional[Union[str, int]] = None,
+                        coo_all: bool = False,
+                        coa_all: bool = False) -> Dict[str, Any]:
+        """
+        Get figures on durable solutions from UNHCR which includes refugee returnees (returned_refugees), resettlement, naturalisation, retuned IDPs (returned_idps)
+        
+        Args:
+            coo: Country of origin filter (ISO3 code, comma-separated for multiple)
+            coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
+            year: Year filter (comma-separated for multiple years) - defaults to 2025
+            coo_all: Set to True when analyzing decisions breakdown BY NATIONALITY
+            coa_all: Set to True when analyzing decisions breakdown BY COUNTRY
+        """
+        return fetch_unhcr_api_data("solutions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
+
 
     return server
