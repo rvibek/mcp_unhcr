@@ -36,7 +36,7 @@ def create_server():
                             year: Optional[Union[str, int]] = None,
                             coo_all: bool = False,
                             coa_all: bool = False,
-                            extra_params: Optional[Dict[str, Any]] = None
+                            pop_type: bool = False
                             ) -> Dict[str, Any]:
         """
         Generic function to fetch data from various UNHCR API endpoints.
@@ -52,8 +52,13 @@ def create_server():
         if coa_all:
             params["coa_all"] = "true"
         
-        # Handle year filter if provided by the calling tool (defaults are now managed by tools)
-        if year is not None:
+        if pop_type:
+            params["pop_type"] = "true"
+            
+        if year is None:
+            # Note: 2025 may not be available yet. You might want to default to a safer past year like 2023.
+            params["year[]"] = "2025" 
+        else:
             year_str = str(year)
             if "," in year_str:
                 years = [y.strip() for y in year_str.split(",")]
@@ -61,12 +66,7 @@ def create_server():
             else:
                 params["year[]"] = year_str
         
-        # Merge endpoint-specific parameters (like pop_type)
-        if extra_params:
-            params.update(extra_params)
-
         base_url = "https://api.unhcr.org/population/v1"
-        # Removed trailing slash from URL construction for robustness
         url = f"{base_url}/{endpoint}/"
         
         try:
@@ -94,8 +94,7 @@ def create_server():
             coo_all: Set to True when breaking down results by ORIGIN country
             coa_all: Set to True when breaking down results by ASYLUM country
         """
-        year_to_use = year if year is not None else 2025
-        return fetch_unhcr_api_data("population", coo=coo, coa=coa, year=year_to_use, coo_all=coo_all, coa_all=coa_all)
+        return fetch_unhcr_api_data("population", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
     
 
     @server.tool()
@@ -116,9 +115,7 @@ def create_server():
             coa_all: Set to True when breaking down results by ASYLUM country
             pop_type: Set to True when asked about specific population types (e.g., refugees, asylum seekers, stateless persons)
         """
-        extra_params = {"pop_type": "true"} if pop_type else None
-        year_to_use = year if year is not None else 2025
-        return fetch_unhcr_api_data("demographics", coo=coo, coa=coa, year=year_to_use, coo_all=coo_all, coa_all=coa_all, extra_params=extra_params)
+        return fetch_unhcr_api_data("demographics", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all, pop_type=pop_type)
     
 
     @server.tool()
@@ -134,13 +131,11 @@ def create_server():
         Args:
             coo: Country of origin filter (ISO3 code, comma-separated for multiple)
             coa: Country of asylum filter (ISO3 code, comma-separated for multiple)
-            year: Year filter (comma-separated for multiple years) - defaults to 2024
+            year: Year filter (comma-separated for multiple years) - defaults to 2025
             coo_all: Set to True when analyzing the ORIGIN COUNTRIES of asylum seekers
             coa_all: Set to True when analyzing the ASYLUM COUNTRIES where applications were filed
         """
-        # Respecting the 2024 default specified in the docstring
-        year_to_use = year if year is not None else 2024
-        return fetch_unhcr_api_data("asylum-applications", coo=coo, coa=coa, year=year_to_use, coo_all=coo_all, coa_all=coa_all)
+        return fetch_unhcr_api_data("asylum-applications", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
     @server.tool()
     def get_rsd_decisions(coo: Optional[str] = None, 
@@ -158,8 +153,7 @@ def create_server():
             coo_all: Set to True when analyzing decisions breakdown BY NATIONALITY
             coa_all: Set to True when analyzing decisions breakdown BY COUNTRY
         """
-        year_to_use = year if year is not None else 2025
-        return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year_to_use, coo_all=coo_all, coa_all=coa_all)
+        return fetch_unhcr_api_data("asylum-decisions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
     @server.tool()
     def get_solutions(coo: Optional[str] = None, 
@@ -177,11 +171,6 @@ def create_server():
             coo_all: Set to True when analyzing decisions breakdown BY NATIONALITY
             coa_all: Set to True when analyzing decisions breakdown BY COUNTRY
         """
-        year_to_use = year if year is not None else 2025
-        return fetch_unhcr_api_data("solutions", coo=coo, coa=coa, year=year_to_use, coo_all=coo_all, coa_all=coa_all)
+        return fetch_unhcr_api_data("solutions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
     return server
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(server.app, host="0.0.0.0", port=8000)
