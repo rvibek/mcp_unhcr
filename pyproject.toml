@@ -22,3 +22,6 @@ playground = "smithery.cli.playground:main"
 # Points to your server function
 [tool.smithery]
 server = "my_server.server:create_server"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
