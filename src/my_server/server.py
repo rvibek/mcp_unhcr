@@ -8,6 +8,7 @@ It allows querying data around forcibly displaced persons by country of origin, 
 API Endpoint: https://api.unhcr.org/population/v1/
 """
 import logging
+import os
 from typing import Any, Dict, Optional, Union
 
 import requests
@@ -25,6 +26,8 @@ class ConfigSchema(BaseModel):
 @smithery.server(config_schema=ConfigSchema)
 def create_server():
     """Create and return a FastMCP server instance."""
+    # Set environment variable to allow any host header
+    os.environ['ALLOWED_HOSTS'] = '*'
 
     server = FastMCP(name="UNHCR API Data")
 
