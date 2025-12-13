@@ -11,7 +11,6 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
 from smithery.decorators import smithery
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -24,7 +23,7 @@ class ConfigSchema(BaseModel):
 
 
 @smithery.server(config_schema=ConfigSchema)
-def create_server():
+def create_server(config: ConfigSchema):
     server = FastMCP(name="UNHCR API Data")
 
     def fetch_unhcr_api_data(
@@ -59,7 +58,6 @@ def create_server():
         url = f"https://api.unhcr.org/population/v1/{endpoint}/"
 
         try:
-            logger.info(f"Fetching UNHCR {endpoint} data with params: {params}")
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -84,79 +82,9 @@ def create_server():
             coa_all=coa_all
         )
 
-    @server.tool()
-    def get_demographics_data(
-        coo: Optional[str] = None,
-        coa: Optional[str] = None,
-        year: Optional[Union[str, int]] = None,
-        coo_all: bool = False,
-        coa_all: bool = False,
-        pop_type: bool = False
-    ) -> Dict[str, Any]:
-        return fetch_unhcr_api_data(
-            "demographics",
-            coo=coo,
-            coa=coa,
-            year=year,
-            coo_all=coo_all,
-            coa_all=coa_all,
-            pop_type=pop_type
-        )
-
-    @server.tool()
-    def get_rsd_applications(
-        coo: Optional[str] = None,
-        coa: Optional[str] = None,
-        year: Optional[Union[str, int]] = None,
-        coo_all: bool = False,
-        coa_all: bool = False
-    ) -> Dict[str, Any]:
-        return fetch_unhcr_api_data(
-            "asylum-applications",
-            coo=coo,
-            coa=coa,
-            year=year,
-            coo_all=coo_all,
-            coa_all=coa_all
-        )
-
-    @server.tool()
-    def get_rsd_decisions(
-        coo: Optional[str] = None,
-        coa: Optional[str] = None,
-        year: Optional[Union[str, int]] = None,
-        coo_all: bool = False,
-        coa_all: bool = False
-    ) -> Dict[str, Any]:
-        return fetch_unhcr_api_data(
-            "asylum-decisions",
-            coo=coo,
-            coa=coa,
-            year=year,
-            coo_all=coo_all,
-            coa_all=coa_all
-        )
-
-    @server.tool()
-    def get_solutions(
-        coo: Optional[str] = None,
-        coa: Optional[str] = None,
-        year: Optional[Union[str, int]] = None,
-        coo_all: bool = False,
-        coa_all: bool = False
-    ) -> Dict[str, Any]:
-        return fetch_unhcr_api_data(
-            "solutions",
-            coo=coo,
-            coa=coa,
-            year=year,
-            coo_all=coo_all,
-            coa_all=coa_all
-        )
-
     return server
 
 
 if __name__ == "__main__":
-    server = create_server()
+    server = create_server(ConfigSchema())
     server.run(host="0.0.0.0", port=int(os.getenv("PORT", "3333")))
