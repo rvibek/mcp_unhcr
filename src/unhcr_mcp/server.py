@@ -15,8 +15,7 @@ import os
 from typing import Any, Optional, Union
 
 import requests
-from mcp.server.fastmcp import FastMCP, Context
-from pydantic import BaseModel, Field
+from mcp.server.fastmcp import FastMCP
 from smithery.decorators import smithery
 
 # Configure logging
@@ -25,11 +24,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-class ConfigSchema(BaseModel):
-    """Configuration schema for Smithery."""
-    debug_mode: bool = Field(default=False, description="Enable debug logging")
 
 
 class UNHCRAPIClient:
@@ -109,7 +103,7 @@ class UNHCRAPIClient:
         return self._fetch("solutions", coo=coo, coa=coa, year=year, coo_all=coo_all, coa_all=coa_all)
 
 
-@smithery.server(config_schema=ConfigSchema)
+@smithery.server()
 def create_server() -> FastMCP:
     """
     Create and return a FastMCP server instance.
